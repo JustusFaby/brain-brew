@@ -70,8 +70,9 @@ graph TD;
    docker compose up -d --build
    ```
 3. Access the application:
-   - Frontend: `http://localhost:5173`
-   - Backend API: `http://localhost:5000`
+-Frontend App: http://100.24.8.222:5173
+-Backend API: http://100.24.8.222:5000
+-Jenkins CI/CD: http://100.24.8.222:8080
 
 ## ☁️ Infrastructure (Terraform)
 
