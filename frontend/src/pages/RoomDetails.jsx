@@ -15,6 +15,9 @@ export default function RoomDetails() {
   const [members, setMembers] = useState([]);
   const [isCreator, setIsCreator] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [documents, setDocuments] = useState([]);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const fileInputRef = useRef(null);
   const chatEndRef = useRef(null);
   const socketRef = useRef(null);
   const navigate = useNavigate();
@@ -68,8 +71,17 @@ export default function RoomDetails() {
         setLoading(false);
       }
     };
+    const fetchDocuments = async () => {
+      try {
+        const res = await api.get(`/rooms/${roomId}/documents`);
+        setDocuments(res.data);
+      } catch (err) {
+        console.error("Failed to fetch documents", err);
+      }
+    };
     fetchRoom();
     fetchMembers();
+    fetchDocuments();
     return () => {
       socket.emit("leave-room", roomId);
       socket.off("receive-message");
@@ -102,6 +114,32 @@ export default function RoomDetails() {
       timestamp: new Date().toISOString(),
     });
     setInput("");
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("document", file);
+
+    setUploadingDoc(true);
+    try {
+      const res = await api.post(`/rooms/${roomId}/documents`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      // Try to fetch documents again to get uploader_name populated or just append. Let's fetch to be safe.
+      const docRes = await api.get(`/rooms/${roomId}/documents`);
+      setDocuments(docRes.data);
+    } catch (err) {
+      console.error("Upload error", err);
+      alert("Failed to upload document. Ensure AWS S3 is configured.");
+    } finally {
+      setUploadingDoc(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   if (loading) {
@@ -257,6 +295,60 @@ export default function RoomDetails() {
                 ) : (
                   <p className="text-sm text-dark-500 text-center py-2">
                     Loading members...
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="glass-card p-5">
+              <h3 className="font-semibold text-coffee-900 mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  📄 Documents
+                  <span className="text-xs bg-cream-200 text-dark-400 px-2 py-0.5 rounded-full">
+                    {documents.length}
+                  </span>
+                </div>
+                <div>
+                  <input
+                    type="file"
+                    className="hidden"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingDoc}
+                    className="text-xs px-3 py-1.5 bg-coffee-100 text-coffee-700 rounded hover:bg-coffee-200 transition-colors"
+                  >
+                    {uploadingDoc ? "Uploading..." : "Upload"}
+                  </button>
+                </div>
+              </h3>
+              <div className="space-y-2.5 max-h-[300px] overflow-y-auto">
+                {documents.length > 0 ? (
+                  documents.map((doc, i) => (
+                    <div
+                      key={doc.id || i}
+                      className="flex items-center justify-between p-2 rounded-lg border border-coffee-200/50 hover:bg-coffee-50/50 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0 pr-3">
+                        <a
+                          href={doc.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-coffee-800 font-medium truncate hover:underline block"
+                        >
+                          {doc.file_name}
+                        </a>
+                        <p className="text-[10px] text-dark-500 mt-0.5">
+                          Uploaded by {doc.uploader_name || "Unknown"}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-dark-500 text-center py-2">
+                    No documents uploaded yet.
                   </p>
                 )}
               </div>

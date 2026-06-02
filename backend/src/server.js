@@ -11,8 +11,8 @@ require("./routes/authRoutes");
 const roomRoutes =
 require("./routes/roomRoutes");
 
-const sessionRoutes =
-require("./routes/sessionRoutes");
+const sessionRoutes = require("./routes/sessionRoutes");
+const documentRoutes = require("./routes/documentRoutes");
 
 const app = express();
 
@@ -21,6 +21,7 @@ app.use(express.json());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/rooms", roomRoutes);
+app.use("/api/rooms", documentRoutes); // documents are under /api/rooms/:roomId/documents
 app.use("/api/session", sessionRoutes);
 
 app.get("/", (req, res) => {

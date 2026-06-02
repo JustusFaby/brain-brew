@@ -35,3 +35,12 @@ CREATE TABLE IF NOT EXISTS study_sessions (
     duration_minutes NUMERIC,
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS documents (
+    id SERIAL PRIMARY KEY,
+    room_id INTEGER REFERENCES rooms(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    file_name VARCHAR(255) NOT NULL,
+    file_url TEXT NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT NOW()
+);
