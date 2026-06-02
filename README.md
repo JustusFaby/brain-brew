@@ -1,6 +1,11 @@
 # Virtual Study Cafe ☕📚
 
-A full-stack, real-time virtual study environment where students can join study rooms, chat via Socket.IO, and upload files. This project is fully containerized and deployed to AWS with a complete CI/CD pipeline and Infrastructure as Code.
+A full-stack, real-time virtual study environment where students can join study rooms, chat via Socket.IO, and upload files. This project is fully containerized and deployed to AWS with a complete CI/CD pipeline.
+
+## 🎬 Demo
+
+Check out the project in action:
+[Watch Demo Video](https://www.dropbox.com/scl/fi/xj5f6hzs4ljiq9frpksll/brain-brew.mp4?rlkey=93nr1ut9ixzafuazvnw14yuoa&st=y1fwylfo&dl=0)
 
 ## 🏗️ Architecture Overview
 
@@ -69,10 +74,6 @@ graph TD;
    ```bash
    docker compose up -d --build
    ```
-3. Access the application:
--Frontend App: http://100.24.8.222:5173
--Backend API: http://100.24.8.222:5000
--Jenkins CI/CD: http://100.24.8.222:8080
 
 ## ☁️ Infrastructure (Terraform)
 
