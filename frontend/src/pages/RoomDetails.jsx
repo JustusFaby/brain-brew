@@ -1,46 +1,91 @@
 import { useState, useEffect, useRef, useContext } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
 import Navbar from "../components/Navbar";
 import PomodoroTimer from "../components/PomodoroTimer";
 
-const socket = io("http://localhost:5000");
-
 export default function RoomDetails() {
   const { roomId } = useParams();
-  const { user } = useContext(AuthContext);
+  const { user, isStudying } = useContext(AuthContext);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [room, setRoom] = useState(null);
+  const [members, setMembers] = useState([]);
+  const [isCreator, setIsCreator] = useState(false);
+  const [loading, setLoading] = useState(true);
   const chatEndRef = useRef(null);
+  const socketRef = useRef(null);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    // Join socket room
-    socket.emit("join-room", roomId);
-
-    // Listen for messages
-    socket.on("receive-message", (data) => {
-      setMessages((prev) => [...prev, data]);
-    });
-
-    // Fetch room info
-    const fetchRoom = async () => {
+  const handleDeleteRoom = async () => {
+    if (window.confirm("Are you sure you want to delete this room?")) {
       try {
-        const res = await api.get("/rooms/all");
-        const found = res.data.find((r) => r.id === parseInt(roomId));
-        if (found) setRoom(found);
+        await api.delete(`/rooms/${roomId}`);
+        navigate("/rooms");
       } catch (err) {
         console.error(err);
       }
+    }
+  };
+
+  useEffect(() => {
+    const socket = io("http://localhost:5000", {
+      auth: { token: localStorage.getItem("token") },
+    });
+    socketRef.current = socket;
+    socket.emit("join-room", roomId);
+    socket.on("receive-message", (data) => {
+      setMessages((prev) => [...prev, data]);
+    });
+    socket.on("member-joined", (data) => {
+      fetchMembers();
+    });
+    socket.on("member-left", (data) => {
+      fetchMembers();
+    });
+    socket.on("error-message", (data) => {
+      console.error("Socket error:", data.message);
+    });
+    const fetchRoom = async () => {
+      try {
+        const res = await api.get(`/rooms/${roomId}`);
+        setRoom(res.data);
+        setIsCreator(res.data.created_by == user?.id);
+      } catch (err) {
+        try {
+          const res = await api.get("/rooms/all");
+          const found = res.data.find((r) => r.id === parseInt(roomId));
+          if (found) {
+            setRoom(found);
+            setIsCreator(found.created_by == user?.id);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      } finally {
+        setLoading(false);
+      }
     };
     fetchRoom();
-
+    fetchMembers();
     return () => {
+      socket.emit("leave-room", roomId);
       socket.off("receive-message");
+      socket.off("member-joined");
+      socket.off("member-left");
+      socket.off("error-message");
+      socket.disconnect();
     };
-  }, [roomId]);
+  }, [roomId, user?.id]);
+
+  const fetchMembers = async () => {
+    try {
+      const res = await api.get(`/rooms/${roomId}/members`);
+      setMembers(res.data);
+    } catch (err) {}
+  };
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -48,9 +93,8 @@ export default function RoomDetails() {
 
   const sendMessage = (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
-
-    socket.emit("send-message", {
+    if (!input.trim() || !socketRef.current) return;
+    socketRef.current.emit("send-message", {
       roomId,
       message: input,
       username: user?.name || "Anonymous",
@@ -60,38 +104,69 @@ export default function RoomDetails() {
     setInput("");
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen ambient-bg">
+        <Navbar />
+        <div className="pt-24 pb-10 px-4 max-w-7xl mx-auto relative z-10">
+          <div className="glass-card p-8 animate-pulse">
+            <div className="h-6 bg-coffee-100/50 rounded w-1/3 mb-3" />
+            <div className="h-4 bg-coffee-100/50 rounded w-1/2" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen ambient-bg">
       <Navbar />
-      <div className="pt-24 pb-10 px-4 max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold gradient-text">
-            {room?.room_name || "Study Room"}
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            {room?.description || "Loading..."}
-          </p>
+      <div className="pt-20 pb-10 px-4 max-w-7xl mx-auto relative z-10">
+        {isStudying && (
+          <div className="mb-4 bg-coffee-100 border border-coffee-300/40 rounded-xl px-4 py-2.5 flex items-center gap-2 animate-fade-in">
+            <span className="w-2 h-2 bg-coffee-500 rounded-full animate-pulse" />
+            <span className="text-sm font-medium text-coffee-500">
+              🔒 Study session in progress — stay focused!
+            </span>
+          </div>
+        )}
+
+        <div className="mb-6 flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-bold gradient-text">
+              {room?.room_name || "Study Room"}
+            </h1>
+            <p className="text-dark-500 text-sm mt-1">
+              {room?.description || "A focused study space"}
+            </p>
+          </div>
+          {isCreator && (
+            <button
+              onClick={handleDeleteRoom}
+              className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 text-sm font-medium transition-colors"
+            >
+              Delete Room
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Chat Section */}
-          <div className="lg:col-span-2 glass-card flex flex-col h-[600px]">
-            <div className="p-4 border-b border-white/10">
-              <h2 className="font-semibold text-white flex items-center gap-2">
+          <div className="lg:col-span-2 glass-card flex flex-col h-[calc(100vh-220px)] min-h-[500px]">
+            <div className="p-4 border-b border-coffee-200/40">
+              <h2 className="font-semibold text-coffee-900 flex items-center gap-2">
                 💬 Live Chat
-                <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-medium">
                   Live
                 </span>
               </h2>
             </div>
 
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {messages.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-gray-600">
+                <div className="flex items-center justify-center h-full text-dark-500">
                   <div className="text-center">
-                    <span className="text-4xl block mb-2">💬</span>
-                    <p>No messages yet. Say hello!</p>
+                    <span className="text-4xl block mb-3">💬</span>
+                    <p className="text-dark-500">No messages yet. Say hello!</p>
                   </div>
                 </div>
               ) : (
@@ -100,22 +175,22 @@ export default function RoomDetails() {
                   return (
                     <div
                       key={i}
-                      className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                      className={`flex ${isMe ? "justify-end" : "justify-start"} animate-slide-up`}
                     >
                       <div
                         className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
                           isMe
-                            ? "bg-primary-600/30 border border-primary-500/20 rounded-br-sm"
-                            : "bg-white/5 border border-white/10 rounded-bl-sm"
+                            ? "bg-coffee-100 border border-coffee-200/50 rounded-br-md"
+                            : "bg-cream-100 border border-coffee-200/40 rounded-bl-md"
                         }`}
                       >
                         {!isMe && (
-                          <p className="text-xs font-medium text-primary-400 mb-1">
+                          <p className="text-xs font-medium text-coffee-500 mb-1">
                             {msg.username}
                           </p>
                         )}
-                        <p className="text-sm text-gray-200">{msg.message}</p>
-                        <p className="text-[10px] text-gray-600 mt-1">
+                        <p className="text-sm text-coffee-800">{msg.message}</p>
+                        <p className="text-[10px] text-dark-500 mt-1">
                           {new Date(msg.timestamp).toLocaleTimeString([], {
                             hour: "2-digit",
                             minute: "2-digit",
@@ -129,8 +204,7 @@ export default function RoomDetails() {
               <div ref={chatEndRef} />
             </div>
 
-            {/* Input */}
-            <form onSubmit={sendMessage} className="p-4 border-t border-white/10">
+            <form onSubmit={sendMessage} className="p-4 border-t border-coffee-200/40">
               <div className="flex gap-2">
                 <input
                   value={input}
@@ -145,9 +219,48 @@ export default function RoomDetails() {
             </form>
           </div>
 
-          {/* Sidebar - Timer */}
           <div className="space-y-6">
-            <PomodoroTimer roomId={roomId} />
+            <PomodoroTimer
+              roomId={roomId}
+              isCreator={isCreator}
+              socket={socketRef.current}
+            />
+
+            <div className="glass-card p-5">
+              <h3 className="font-semibold text-coffee-900 mb-4 flex items-center gap-2">
+                👥 Members
+                <span className="text-xs bg-cream-200 text-dark-400 px-2 py-0.5 rounded-full">
+                  {members.length}
+                </span>
+              </h3>
+              <div className="space-y-2.5">
+                {members.length > 0 ? (
+                  members.map((member, i) => (
+                    <div
+                      key={member.id || i}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-coffee-50/50 transition-colors"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-coffee-400 to-coffee-500 flex items-center justify-center text-white text-xs font-bold">
+                        {member.name?.charAt(0)?.toUpperCase() || "?"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-coffee-900 font-medium truncate">
+                          {member.name}
+                          {member.id === user?.id && (
+                            <span className="text-dark-500 ml-1">(You)</span>
+                          )}
+                        </p>
+                      </div>
+                      <span className="w-2 h-2 bg-green-400 rounded-full" />
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-dark-500 text-center py-2">
+                    Loading members...
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

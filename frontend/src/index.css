@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 * {
   margin: 0;
@@ -12,39 +12,191 @@
 
 body {
   font-family: 'Inter', sans-serif;
-  background-color: #0b0a12;
-  color: #e2e8f0;
+  background-color: #FFFDF9;
+  color: #4A2C1A;
   min-height: 100vh;
 }
 
+#root {
+  min-height: 100vh;
+}
+
+/* ── Custom Scrollbar ── */
 ::-webkit-scrollbar {
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #13111c;
+  background: #FFF9F0;
 }
 ::-webkit-scrollbar-thumb {
-  background: #4c1d95;
+  background: #D4A574;
   border-radius: 3px;
 }
+::-webkit-scrollbar-thumb:hover {
+  background: #C08B5C;
+}
 
+/* ── Component Layer ── */
 @layer components {
+
+  /* Glass Card — light mode with warm tones */
   .glass-card {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl;
+    @apply bg-white/80 backdrop-blur-2xl border border-coffee-200/60 rounded-2xl shadow-card;
   }
+
   .glass-card-hover {
-    @apply glass-card transition-all duration-300 hover:bg-white/10 hover:border-primary-500/30 hover:shadow-lg hover:shadow-primary-500/10;
+    @apply glass-card transition-all duration-300 hover:bg-white hover:border-coffee-300/50 hover:shadow-card-hover;
   }
+
+  /* Buttons */
   .btn-primary {
-    @apply bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 hover:from-primary-500 hover:to-primary-400 hover:shadow-lg hover:shadow-primary-500/30 active:scale-95;
+    @apply bg-gradient-to-r from-coffee-500 to-coffee-600 text-white font-semibold py-3 px-6 rounded-xl
+           transition-all duration-300
+           hover:from-coffee-400 hover:to-coffee-500 hover:shadow-lg hover:shadow-coffee-500/25
+           active:scale-[0.97]
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none;
   }
+
   .btn-secondary {
-    @apply bg-white/5 border border-white/10 text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 hover:bg-white/10 hover:border-primary-500/30;
+    @apply bg-cream-100/80 border border-coffee-200/50 text-coffee-600 font-medium py-3 px-6 rounded-xl
+           transition-all duration-300
+           hover:bg-cream-200 hover:border-coffee-300/60 hover:text-coffee-700;
   }
+
+  /* Input Fields */
   .input-field {
-    @apply w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50 focus:ring-1 focus:ring-primary-500/30 transition-all duration-300;
+    @apply w-full bg-white border border-coffee-200/50 rounded-xl px-4 py-3
+           text-coffee-800 placeholder-dark-400
+           focus:outline-none focus:border-coffee-400/60 focus:ring-1 focus:ring-coffee-400/30
+           transition-all duration-300;
   }
+
+  /* Gradient Text — coffee brown gradient */
   .gradient-text {
-    @apply bg-gradient-to-r from-primary-400 to-pink-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-coffee-500 to-coffee-600 bg-clip-text text-transparent;
+  }
+
+  .gradient-text-focus {
+    @apply bg-gradient-to-r from-focus-400 to-focus-500 bg-clip-text text-transparent;
+  }
+}
+
+/* ── Timer Glow ── */
+.timer-glow {
+  animation: timer-glow-anim 2s ease-in-out infinite alternate;
+}
+
+@keyframes timer-glow-anim {
+  0% {
+    filter: drop-shadow(0 0 8px rgba(139, 94, 60, 0.15));
+  }
+  100% {
+    filter: drop-shadow(0 0 20px rgba(139, 94, 60, 0.35));
+  }
+}
+
+.timer-glow-focus {
+  animation: timer-glow-focus-anim 2s ease-in-out infinite alternate;
+}
+
+@keyframes timer-glow-focus-anim {
+  0% {
+    filter: drop-shadow(0 0 8px rgba(122, 79, 48, 0.15));
+  }
+  100% {
+    filter: drop-shadow(0 0 20px rgba(122, 79, 48, 0.35));
+  }
+}
+
+/* ── Skeleton Loading ── */
+.skeleton {
+  background: linear-gradient(90deg, rgba(139,94,60,0.04) 25%, rgba(139,94,60,0.08) 50%, rgba(139,94,60,0.04) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Page Transitions ── */
+.page-enter {
+  animation: page-fade-in 0.35s ease-out forwards;
+}
+
+@keyframes page-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Toast Notification ── */
+.toast {
+  animation: toast-in 0.3s ease-out forwards;
+}
+
+@keyframes toast-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.toast-exit {
+  animation: toast-out 0.25s ease-in forwards;
+}
+
+@keyframes toast-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.95);
+  }
+}
+
+/* ── Ambient Background — warm cream with subtle coffee radials ── */
+.ambient-bg {
+  background: linear-gradient(135deg, #FFFDF9 0%, #FFF9F0 50%, #FFFDF9 100%);
+  position: relative;
+}
+
+.ambient-bg::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 20% 50%, rgba(212, 165, 116, 0.06) 0%, transparent 50%),
+              radial-gradient(circle at 80% 20%, rgba(139, 94, 60, 0.04) 0%, transparent 50%),
+              radial-gradient(circle at 50% 80%, rgba(192, 139, 92, 0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Pulsing Badge ── */
+.pulse-badge {
+  animation: pulse-badge-anim 2s ease-in-out infinite;
+}
+
+@keyframes pulse-badge-anim {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(139, 94, 60, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(139, 94, 60, 0);
   }
 }

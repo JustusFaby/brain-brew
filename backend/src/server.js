@@ -37,7 +37,8 @@ new Server(server,{
  }
 });
 
-require("./sockets/chatSocket")(io);
+const { roomSocket } = require("./sockets/roomSocket");
+roomSocket(io);
 
 server.listen(
   process.env.PORT,

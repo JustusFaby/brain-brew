@@ -25,4 +25,28 @@ router.get(
  roomController.getRooms
 );
 
+router.get(
+ "/:roomId",
+ auth,
+ roomController.getRoomById
+);
+
+router.get(
+ "/:roomId/members",
+ auth,
+ roomController.getRoomMembers
+);
+
+router.post(
+ "/leave/:roomId",
+ auth,
+ roomController.leaveRoom
+);
+
+router.delete(
+ "/:roomId",
+ auth,
+ roomController.deleteRoom
+);
+
 module.exports = router;

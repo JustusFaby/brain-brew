@@ -1,5 +1,6 @@
+import { useContext } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider, AuthContext } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -8,6 +9,11 @@ import Rooms from "./pages/Rooms";
 import RoomDetails from "./pages/RoomDetails";
 import Leaderboard from "./pages/Leaderboard";
 import Profile from "./pages/Profile";
+
+function DefaultRoute() {
+  const { token } = useContext(AuthContext);
+  return <Navigate to={token ? "/dashboard" : "/login"} replace />;
+}
 
 function App() {
   return (
@@ -56,7 +62,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<DefaultRoute />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

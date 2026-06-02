@@ -27,26 +27,31 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-      <div className="absolute top-1/3 -right-32 w-96 h-96 bg-primary-600/20 rounded-full blur-3xl animate-pulse-slow" />
-      <div className="absolute bottom-1/3 -left-32 w-96 h-96 bg-violet-600/15 rounded-full blur-3xl animate-pulse-slow" />
+    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden bg-cream-50">
+      {/* Ambient background effects */}
+      <div className="absolute top-1/4 -right-40 w-[500px] h-[500px] bg-coffee-300/10 rounded-full blur-[100px] animate-pulse-slow" />
+      <div className="absolute bottom-1/4 -left-40 w-[500px] h-[500px] bg-coffee-200/8 rounded-full blur-[100px] animate-pulse-slow" />
 
-      <div className="glass-card p-8 sm:p-10 w-full max-w-md relative">
+      <div className="glass-card p-8 sm:p-10 w-full max-w-md relative animate-fade-in">
+        {/* Brand */}
         <div className="text-center mb-8">
-          <span className="text-4xl mb-3 block">☕</span>
+          <img src="/logo.jpg" alt="BrainBrew" className="w-20 h-20 rounded-full object-cover mx-auto mb-4 shadow-lg shadow-coffee-500/15" />
           <h1 className="text-3xl font-bold gradient-text">Welcome Back</h1>
-          <p className="text-gray-500 mt-2">Login to your study cafe</p>
+          <p className="text-dark-500 mt-2">Sign in to your study space</p>
         </div>
 
+        {/* Error */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 mb-6 text-red-400 text-sm">
-            {error}
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-6 text-red-600 text-sm flex items-center gap-2">
+            <span>⚠️</span> {error}
           </div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1.5">Email</label>
+            <label className="block text-sm font-medium text-dark-400 mb-1.5">
+              Email
+            </label>
             <input
               type="email"
               value={email}
@@ -57,7 +62,9 @@ export default function Login() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1.5">Password</label>
+            <label className="block text-sm font-medium text-dark-400 mb-1.5">
+              Password
+            </label>
             <input
               type="password"
               value={password}
@@ -70,16 +77,26 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full disabled:opacity-50"
+            className="btn-primary w-full"
           >
-            {loading ? "Logging in..." : "Login"}
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Signing in...
+              </span>
+            ) : (
+              "Sign In"
+            )}
           </button>
         </form>
 
-        <p className="text-center text-gray-500 mt-6 text-sm">
+        <p className="text-center text-dark-500 mt-6 text-sm">
           Don't have an account?{" "}
-          <Link to="/signup" className="text-primary-400 hover:text-primary-300 font-medium">
-            Sign Up
+          <Link to="/signup" className="text-coffee-500 hover:text-coffee-400 font-medium transition-colors">
+            Create Account
           </Link>
         </p>
       </div>

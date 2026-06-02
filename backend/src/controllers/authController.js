@@ -1,5 +1,6 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const pool = require("../config/db");
 
 const {
   createUser,
@@ -61,6 +62,13 @@ exports.login = async (req, res) => {
         message: "Invalid credentials",
       });
     }
+
+    // Clean up any orphaned sessions
+    await pool.query(
+      `UPDATE study_sessions SET end_time = NOW(), duration_minutes = EXTRACT(EPOCH FROM (NOW() - start_time)) / 60 WHERE user_id = $1 AND end_time IS NULL`,
+      [user.id]
+    );
+    await pool.query("UPDATE users SET status = 'idle' WHERE id = $1", [user.id]);
 
     const token = jwt.sign(
       {

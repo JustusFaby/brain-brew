@@ -1,84 +1,105 @@
 const pool = require("../config/db");
 
 exports.startSession = async (req, res) => {
+  try {
+    const { roomId } = req.body;
 
-  const { roomId } = req.body;
+    // Clean up any orphaned sessions first
+    await pool.query(
+      `UPDATE study_sessions SET end_time = NOW(), duration_minutes = EXTRACT(EPOCH FROM (NOW() - start_time)) / 60 WHERE user_id = $1 AND end_time IS NULL`,
+      [req.user.id]
+    );
 
-  // Update user status to studying
-  await pool.query(
-    `UPDATE users SET status='studying' WHERE id=$1`,
-    [req.user.id]
-  );
+    // Update user status to studying
+    await pool.query(
+      `UPDATE users SET status='studying' WHERE id=$1`,
+      [req.user.id]
+    );
 
-  const result = await pool.query(
-    `INSERT INTO study_sessions
-     (user_id, room_id, start_time)
-     VALUES ($1,$2,NOW())
-     RETURNING *`,
-    [req.user.id, roomId]
-  );
+    const result = await pool.query(
+      `INSERT INTO study_sessions
+       (user_id, room_id, start_time)
+       VALUES ($1,$2,NOW())
+       RETURNING *`,
+      [req.user.id, roomId]
+    );
 
-  res.json(result.rows[0]);
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
 exports.endSession = async (req, res) => {
+  try {
+    const sessionId = req.params.sessionId;
 
-  const sessionId = req.params.sessionId;
+    const result = await pool.query(
+      `
+      UPDATE study_sessions
+      SET
+        end_time = NOW(),
+        duration_minutes =
+        EXTRACT(
+          EPOCH FROM (
+            NOW() - start_time
+          )
+        ) / 60
+      WHERE id=$1
+      RETURNING *
+      `,
+      [sessionId]
+    );
 
-  const result = await pool.query(
-    `
-    UPDATE study_sessions
-    SET
-      end_time = NOW(),
-      duration_minutes =
-      EXTRACT(
-        EPOCH FROM (
-          NOW() - start_time
-        )
-      ) / 60
-    WHERE id=$1
-    RETURNING *
-    `,
-    [sessionId]
-  );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
 
-  // Update user total hours
-  await pool.query(
-    `
-    UPDATE users
-    SET total_hours =
-    total_hours +
-    $1
-    WHERE id=$2
-    `,
-    [
-      result.rows[0].duration_minutes,
-      req.user.id
-    ]
-  );
-
-  // Update streak if studied today
-  const streakCheck = await pool.query(
-    `SELECT COUNT(*) FROM study_sessions
-     WHERE user_id=$1
-     AND DATE(created_at)=CURRENT_DATE`,
-    [req.user.id]
-  );
-
-  if (parseInt(streakCheck.rows[0].count) === 1) {
+    // Update user total hours
     await pool.query(
-      `UPDATE users SET streak = streak + 1 WHERE id=$1`,
+      `
+      UPDATE users
+      SET total_hours =
+      total_hours +
+      $1
+      WHERE id=$2
+      `,
+      [
+        result.rows[0].duration_minutes,
+        req.user.id
+      ]
+    );
+
+    // Update streak using last_study_date
+    const today = new Date().toISOString().split('T')[0];
+    const streakResult = await pool.query(
+      'SELECT last_study_date, streak FROM users WHERE id = $1',
       [req.user.id]
     );
+
+    if (streakResult.rows.length > 0) {
+      const { last_study_date, streak } = streakResult.rows[0];
+      const lastDate = last_study_date ? new Date(last_study_date).toISOString().split('T')[0] : null;
+      if (lastDate !== today) {
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        const newStreak = lastDate === yesterday ? streak + 1 : 1;
+        await pool.query(
+          'UPDATE users SET streak = $1, last_study_date = $2 WHERE id = $3',
+          [newStreak, today, req.user.id]
+        );
+      }
+    }
+
+    // Update user status to idle
+    await pool.query(
+      `UPDATE users SET status='idle' WHERE id=$1`,
+      [req.user.id]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  // Update user status to idle
-  await pool.query(
-    `UPDATE users SET status='idle' WHERE id=$1`,
-    [req.user.id]
-  );
-
-  res.json(result.rows[0]);
 };
 
 exports.getAnalytics = async (req, res) => {
