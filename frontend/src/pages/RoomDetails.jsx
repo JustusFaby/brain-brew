@@ -34,7 +34,7 @@ export default function RoomDetails() {
   };
 
   useEffect(() => {
-    const socket = io("http://localhost:5000", {
+    const socket = io(`http://${window.location.hostname}:5000`, {
       auth: { token: localStorage.getItem("token") },
     });
     socketRef.current = socket;
